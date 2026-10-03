@@ -2,10 +2,9 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel, Field
 from bson import ObjectId
 from bson.errors import InvalidId
-from typing import Optional
 from datetime import datetime, timezone
-from pydantic import BaseModel, Field, ConfigDict
 from database import livros, usuarios
+from schemas import LivroNovo, LivroAtualizacao, UsuarioNovo
 
 app = FastAPI(
     title="API Biblioteca",
@@ -32,13 +31,6 @@ def listar_livros():
         lista.append(livro)
     return lista
 
-class LivroNovo(BaseModel):
-    titulo: str
-    autor: str
-    ano: int
-    exemplares: int = 1
-
-
 @app.post("/livros", status_code=201)
 def cadastrar_livro(livro: LivroNovo):
     documento = livro.model_dump()
@@ -56,13 +48,6 @@ def buscar_livro(livro_id: str):
 
     livro["_id"] = str(livro["_id"])
     return livro
-
-class LivroAtualizacao(BaseModel):
-    titulo: Optional[str] = None
-    autor: Optional[str] = None
-    ano: Optional[int] = None
-    exemplares: Optional[int] = Field(default=None, ge=0)
-
 
 @app.patch("/livros/{livro_id}")
 def atualizar_livro(livro_id: str, dados: LivroAtualizacao):
@@ -92,13 +77,6 @@ def remover_livro(livro_id: str):
         raise HTTPException(status_code=404, detail="Livro não encontrado")
 
     return {"mensagem": "Livro removido com sucesso"}
-
-class UsuarioNovo(BaseModel):
-    model_config = ConfigDict(str_strip_whitespace=True)
-    
-    nome: str = Field(min_length=1, max_length=100)
-    email: str = Field(min_length=3, max_length=100)
-
 
 @app.post("/usuarios", status_code=201)
 def cadastrar_usuario(usuario: UsuarioNovo):
