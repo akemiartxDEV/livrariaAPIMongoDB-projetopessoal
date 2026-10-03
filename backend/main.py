@@ -1,22 +1,17 @@
 from fastapi import FastAPI, HTTPException
-from pymongo import MongoClient
 from pydantic import BaseModel, Field
 from bson import ObjectId
 from bson.errors import InvalidId
 from typing import Optional
 from datetime import datetime, timezone
 from pydantic import BaseModel, Field, ConfigDict
+from database import livros, usuarios
 
 app = FastAPI(
     title="API Biblioteca",
     description="API de estudo para registrar livros, usuários e empréstimos de uma biblioteca.",
     version="0.1.0",
 )
-
-cliente = MongoClient("mongodb://localhost:27017")
-banco = cliente["biblioteca"]
-livros = banco["livros"]
-usuarios = banco["usuarios"]
 
 def converter_id(livro_id: str) -> ObjectId:
     try:
