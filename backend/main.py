@@ -14,7 +14,6 @@ app.include_router(livros_router)
 app.include_router(usuarios_router)
 app.include_router(emprestimos_router)
 
-
 @app.get("/")
 def raiz():
     return {"mensagem": "API da biblioteca funcionando"}

@@ -42,3 +42,37 @@ def registrar_emprestimo(dados: EmprestimoNovo):
     )
 
     return {"mensagem": "Empréstimo registrado com sucesso", "id": str(resultado.inserted_id)}
+
+@router.get("")
+def listar_emprestimos():
+    lista = []
+
+    for emprestimo in emprestimos.find():
+        emprestimo["_id"] = str(emprestimo["_id"])
+        emprestimo["livro_id"] = str(emprestimo["livro_id"])
+        emprestimo["usuario_id"] = str(emprestimo["usuario_id"])
+        lista.append(emprestimo)
+    return lista
+
+@router.patch("/{emprestimo_id}/devolucao")
+def devolver_livro(emprestimo_id: str):
+    emprestimo_oid = converter_id(emprestimo_id)
+
+    emprestimo = emprestimos.find_one({"_id": emprestimo_oid})
+    if emprestimo is None:
+        raise HTTPException(status_code=404, detail="Empréstimo não encontrado")
+
+    if emprestimo["data_devolucao"] is not None:
+        raise HTTPException(status_code=409, detail="Este empréstimo já foi devolvido")
+
+    emprestimos.update_one(
+        {"_id": emprestimo_oid},
+        {"$set": {"data_devolucao": datetime.now(timezone.utc)}},
+    )
+
+    livros.update_one(
+        {"_id": emprestimo["livro_id"]},
+        {"$inc": {"exemplares": 1}, "$set": {"disponivel": True}},
+    )
+
+    return {"mensagem": "Devolução registrada com sucesso"}
