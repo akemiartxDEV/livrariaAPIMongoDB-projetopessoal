@@ -5,3 +5,4 @@ banco = cliente["biblioteca"]
 
 livros = banco["livros"]
 usuarios = banco["usuarios"]
+emprestimos = banco["emprestimos"]

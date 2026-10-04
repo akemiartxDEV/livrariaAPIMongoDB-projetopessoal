@@ -22,3 +22,7 @@ class UsuarioNovo(BaseModel):
 
     nome: str = Field(min_length=1, max_length=100)
     email: str = Field(min_length=3, max_length=100)
+
+class EmprestimoNovo(BaseModel):
+    livro_id: str
+    usuario_id: str

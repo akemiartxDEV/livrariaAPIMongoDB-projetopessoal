@@ -108,8 +108,8 @@ Por enquanto, apenas a coleção `livros` foi criada, por meio do script `primei
 - [x] Conexão entre Python e MongoDB
 - [x] Primeiro livro guardado no banco por código
 - [x] Projeto versionado no GitHub
-- [ ] API com FastAPI
-- [ ] Cadastro, listagem, busca, atualização e remoção de livros
+- [x] API com FastAPI
+- [x] Cadastro, listagem, busca, atualização e remoção de livros
 - [ ] Usuários e empréstimos, com as regras de negócio
 - [ ] Interface web (front end)
 - [ ] Documentação da API e do modelo de dados
