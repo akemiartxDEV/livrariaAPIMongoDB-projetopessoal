@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Biblioteca</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand">
+        <strong>BookAPI</strong>
+        <small>Minha Biblioteca</small>
+      </div>
+
+      <nav aria-label="Navegação principal">
+        <button class="nav-link is-active" type="button" data-view="dashboard-view" aria-current="page">
+          Dashboard
+        </button>
+
+        <button class="nav-link" type="button" data-view="livros-view">
+          Livros
+        </button>
+
+        <button class="nav-link" type="button" disabled>Cadastrar Livro</button>
+        <button class="nav-link" type="button" disabled>Sobre</button>
+      </nav>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <label class="visually-hidden" for="busca-livros">
+          Buscar livros por título ou autor
+        </label>
+        <input
+          id="busca-livros"
+          type="search"
+          placeholder="Buscar por título ou autor..."
+          disabled
+        >
+      </header>
+
+      <main id="dashboard" class="page-content">
+        <section id="dashboard-view">
+          <section class="welcome">
+            <h1>Olá, seja bem-vinda!</h1>
+            <p>Aqui você gerencia sua coleção de livros.</p>
+          </section>
+
+          <section class="stats-grid" aria-label="Resumo da biblioteca">
+            <div class="stat-card">
+              <h2>Livros cadastrados</h2>
+              <p id="total-livros">—</p>
+            </div>
+
+            <div class="stat-card">
+              <h2>Disponíveis</h2>
+              <p id="livros-disponiveis">—</p>
+            </div>
+
+            <div class="stat-card">
+              <h2>Empréstimos registrados</h2>
+              <p id="total-emprestimos">—</p>
+            </div>
+          </section>
+
+          <section class="book-section" aria-labelledby="acervo-titulo">
+            <h2 id="acervo-titulo">Livros do acervo</h2>
+            <ul id="lista-livros" aria-live="polite"></ul>
+          </section>
+
+          </section>
+
+          <section id="livros-view" hidden aria-labelledby="livros-titulo">
+            <h1 id="livros-titulo">Livros</h1>
+            <p>Consulte os livros cadastrados na API.</p>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Título</th>
+                    <th>Autor</th>
+                    <th>Ano</th>
+                    <th>Exemplares</th>
+                    <th>Disponibilidade</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-livros"></tbody>
+              </table>
+            </div>
+          </section>
+
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    const API = "http://127.0.0.1:8000";
+
+    async function carregarLivros() {
+      const lista = document.getElementById("lista-livros");
+      const totalLivros = document.getElementById("total-livros");
+      const livrosDisponiveis = document.getElementById("livros-disponiveis");
+
+      try {
+        const resposta = await fetch(`${API}/livros`);
+
+        if (!resposta.ok) {
+          throw new Error(`A API respondeu com status ${resposta.status}`);
+        }
+
+        const livros = await resposta.json();
+
+        totalLivros.textContent = String(livros.length);
+        livrosDisponiveis.textContent = String(
+          livros.filter((livro) => livro.disponivel === true).length
+        );
+
+        lista.replaceChildren();
+
+        for (const livro of livros) {
+          const item = document.createElement("li");
+          item.textContent =
+            `${livro.titulo} — ${livro.autor} (${livro.exemplares} exemplares)`;
+          lista.appendChild(item);
+        }
+      } catch (erro) {
+        totalLivros.textContent = "—";
+        livrosDisponiveis.textContent = "—";
+
+        const aviso = document.createElement("li");
+        aviso.textContent = "Não foi possível carregar os livros.";
+        lista.replaceChildren(aviso);
+
+        console.error("Erro ao buscar livros:", erro);
+      }
+    }
+
+    async function carregarEmprestimos() {
+      const totalEmprestimos = document.getElementById("total-emprestimos");
+
+      try {
+        const resposta = await fetch(`${API}/emprestimos`);
+
+        if (!resposta.ok) {
+          throw new Error(`A API respondeu com status ${resposta.status}`);
+        }
+
+        const emprestimos = await resposta.json();
+        totalEmprestimos.textContent = String(emprestimos.length);
+      } catch (erro) {
+        totalEmprestimos.textContent = "—";
+        console.error("Erro ao buscar empréstimos:", erro);
+      }
+    }
+
+    function configurarNavegacao() {
+      const botoes = document.querySelectorAll(".nav-link[data-view]");
+      const telas = document.querySelectorAll("#dashboard-view, #livros-view");
+
+      botoes.forEach((botao) => {
+        botao.addEventListener("click", () => {
+          const idTelaEscolhida = botao.dataset.view;
+
+          telas.forEach((tela) => {
+            tela.hidden = tela.id !== idTelaEscolhida;
+          });
+
+          botoes.forEach((outroBotao) => {
+            const selecionado = outroBotao === botao;
+
+            outroBotao.classList.toggle("is-active", selecionado);
+
+            if (selecionado) {
+              outroBotao.setAttribute("aria-current", "page");
+            } else {
+              outroBotao.removeAttribute("aria-current");
+            }
+          });
+        });
+      });
+    }
+
+    carregarLivros();
+    carregarEmprestimos();
+    configurarNavegacao();
+  </script>
+</body>
+</html>
