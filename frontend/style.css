@@ -222,3 +222,35 @@ input {
     grid-template-columns: 1fr;
   }
 }
+
+.table-wrapper {
+  margin-top: 20px;
+  overflow-x: auto;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 12px;
+}
+
+.table-wrapper table {
+  width: 100%;
+  min-width: 700px;
+  border-collapse: collapse;
+}
+
+.table-wrapper th,
+.table-wrapper td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--borda);
+  text-align: left;
+}
+
+.table-wrapper th {
+  background: var(--fundo);
+  color: var(--texto-suave);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.table-wrapper tbody tr:last-child td {
+  border-bottom: 0;
+}

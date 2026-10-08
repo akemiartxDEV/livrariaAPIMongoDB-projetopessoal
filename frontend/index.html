@@ -102,6 +102,7 @@
 
     async function carregarLivros() {
       const lista = document.getElementById("lista-livros");
+      const tabelaLivros = document.getElementById("tabela-livros");
       const totalLivros = document.getElementById("total-livros");
       const livrosDisponiveis = document.getElementById("livros-disponiveis");
 
@@ -120,20 +121,65 @@
         );
 
         lista.replaceChildren();
+        tabelaLivros.replaceChildren();
+
+        if (livros.length === 0) {
+          const avisoLista = document.createElement("li");
+          avisoLista.textContent = "Nenhum livro cadastrado.";
+          lista.appendChild(avisoLista);
+
+          const linhaVazia = document.createElement("tr");
+          const celulaVazia = document.createElement("td");
+          celulaVazia.colSpan = 5;
+          celulaVazia.textContent = "Nenhum livro cadastrado.";
+          linhaVazia.appendChild(celulaVazia);
+          tabelaLivros.appendChild(linhaVazia);
+
+          return;
+        }
 
         for (const livro of livros) {
           const item = document.createElement("li");
           item.textContent =
             `${livro.titulo} — ${livro.autor} (${livro.exemplares} exemplares)`;
           lista.appendChild(item);
+
+          const linha = document.createElement("tr");
+
+          const disponibilidade = livro.disponivel
+            ? "Disponível"
+            : "Indisponível";
+
+          const valores = [
+            livro.titulo,
+            livro.autor,
+            livro.ano,
+            livro.exemplares,
+            disponibilidade,
+          ];
+
+          for (const valor of valores) {
+            const celula = document.createElement("td");
+            celula.textContent = String(valor);
+            linha.appendChild(celula);
+          }
+
+          tabelaLivros.appendChild(linha);
         }
       } catch (erro) {
         totalLivros.textContent = "—";
         livrosDisponiveis.textContent = "—";
 
-        const aviso = document.createElement("li");
-        aviso.textContent = "Não foi possível carregar os livros.";
-        lista.replaceChildren(aviso);
+        const avisoLista = document.createElement("li");
+        avisoLista.textContent = "Não foi possível carregar os livros.";
+        lista.replaceChildren(avisoLista);
+
+        const linhaErro = document.createElement("tr");
+        const celulaErro = document.createElement("td");
+        celulaErro.colSpan = 5;
+        celulaErro.textContent = "Não foi possível carregar os livros.";
+        linhaErro.appendChild(celulaErro);
+        tabelaLivros.replaceChildren(linhaErro);
 
         console.error("Erro ao buscar livros:", erro);
       }
