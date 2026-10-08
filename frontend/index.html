@@ -75,6 +75,25 @@
           <section id="livros-view" hidden aria-labelledby="livros-titulo">
             <h1 id="livros-titulo">Livros</h1>
             <p>Consulte os livros cadastrados na API.</p>
+            <div class="catalog-filters">
+              <div>
+                <label for="busca-catalogo">Buscar por título ou autor</label>
+                <input
+                  id="busca-catalogo"
+                  type="search"
+                  placeholder="Digite um título ou autor..."
+                >
+              </div>
+
+              <div>
+                <label for="filtro-disponibilidade">Disponibilidade</label>
+                <select id="filtro-disponibilidade">
+                  <option value="todos">Todas</option>
+                  <option value="disponivel">Disponíveis</option>
+                  <option value="indisponivel">Indisponíveis</option>
+                </select>
+              </div>
+            </div>
 
             <div class="table-wrapper">
               <table>
@@ -99,6 +118,7 @@
 
   <script>
     const API = "http://127.0.0.1:8000";
+    let todosOsLivros = [];
 
     async function carregarLivros() {
       const lista = document.getElementById("lista-livros");
@@ -113,7 +133,8 @@
           throw new Error(`A API respondeu com status ${resposta.status}`);
         }
 
-        const livros = await resposta.json();
+        todosOsLivros = await resposta.json();
+        const livros = todosOsLivros;
 
         totalLivros.textContent = String(livros.length);
         livrosDisponiveis.textContent = String(
@@ -143,29 +164,9 @@
           item.textContent =
             `${livro.titulo} — ${livro.autor} (${livro.exemplares} exemplares)`;
           lista.appendChild(item);
-
-          const linha = document.createElement("tr");
-
-          const disponibilidade = livro.disponivel
-            ? "Disponível"
-            : "Indisponível";
-
-          const valores = [
-            livro.titulo,
-            livro.autor,
-            livro.ano,
-            livro.exemplares,
-            disponibilidade,
-          ];
-
-          for (const valor of valores) {
-            const celula = document.createElement("td");
-            celula.textContent = String(valor);
-            linha.appendChild(celula);
-          }
-
-          tabelaLivros.appendChild(linha);
         }
+        atualizarTabelaLivros();
+        
       } catch (erro) {
         totalLivros.textContent = "—";
         livrosDisponiveis.textContent = "—";
@@ -184,6 +185,7 @@
         console.error("Erro ao buscar livros:", erro);
       }
     }
+
 
     async function carregarEmprestimos() {
       const totalEmprestimos = document.getElementById("total-emprestimos");
@@ -229,6 +231,81 @@
         });
       });
     }
+
+    function atualizarTabelaLivros() {
+      const termo = document
+        .getElementById("busca-catalogo")
+        .value
+        .trim()
+        .toLowerCase();
+
+      const filtro = document.getElementById("filtro-disponibilidade").value;
+
+      const livrosFiltrados = todosOsLivros.filter((livro) => {
+        const titulo = livro.titulo.toLowerCase();
+        const autor = livro.autor.toLowerCase();
+
+        const combinaBusca =
+          termo === "" ||
+          titulo.includes(termo) ||
+          autor.includes(termo);
+
+        let combinaDisponibilidade = true;
+
+        if (filtro === "disponivel") {
+          combinaDisponibilidade = livro.disponivel === true;
+        } else if (filtro === "indisponivel") {
+          combinaDisponibilidade = livro.disponivel === false;
+        }
+
+        return combinaBusca && combinaDisponibilidade;
+      });
+
+      const tabelaLivros = document.getElementById("tabela-livros");
+      tabelaLivros.replaceChildren();
+
+      if (livrosFiltrados.length === 0) {
+        const linha = document.createElement("tr");
+        const celula = document.createElement("td");
+        celula.colSpan = 5;
+        celula.textContent = "Nenhum livro corresponde à busca ou ao filtro.";
+        linha.appendChild(celula);
+        tabelaLivros.appendChild(linha);
+        return;
+      }
+
+      for (const livro of livrosFiltrados) {
+        const linha = document.createElement("tr");
+
+        const disponibilidade = livro.disponivel
+          ? "Disponível"
+          : "Indisponível";
+
+        const valores = [
+          livro.titulo,
+          livro.autor,
+          livro.ano,
+          livro.exemplares,
+          disponibilidade,
+        ];
+
+        for (const valor of valores) {
+          const celula = document.createElement("td");
+          celula.textContent = String(valor);
+          linha.appendChild(celula);
+        }
+
+        tabelaLivros.appendChild(linha);
+      }
+    }
+
+    document
+      .getElementById("busca-catalogo")
+      .addEventListener("input", atualizarTabelaLivros);
+
+    document
+      .getElementById("filtro-disponibilidade")
+      .addEventListener("change", atualizarTabelaLivros);
 
     carregarLivros();
     carregarEmprestimos();
