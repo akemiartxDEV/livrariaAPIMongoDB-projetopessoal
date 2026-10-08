@@ -23,7 +23,9 @@
           Livros
         </button>
 
-        <button class="nav-link" type="button" disabled>Cadastrar Livro</button>
+        <button class="nav-link" type="button" data-view="cadastro-view">
+          Cadastrar Livro
+        </button>
         <button class="nav-link" type="button" disabled>Sobre</button>
       </nav>
     </aside>
@@ -111,6 +113,50 @@
             </div>
           </section>
 
+          <section id="cadastro-view" hidden aria-labelledby="cadastro-titulo">
+            <h1 id="cadastro-titulo">Cadastrar Livro</h1>
+            <p>Preencha os dados para adicionar um livro.</p>
+
+            <form id="form-livro">
+              <div>
+                <label for="novo-titulo">Título</label>
+                <input id="novo-titulo" name="titulo" type="text" required>
+              </div>
+
+              <div>
+                <label for="novo-autor">Autor</label>
+                <input id="novo-autor" name="autor" type="text" required>
+              </div>
+
+              <div>
+                <label for="novo-ano">Ano</label>
+                <input id="novo-ano" name="ano" type="number" required>
+              </div>
+
+              <div>
+                <label for="novo-exemplares">Exemplares</label>
+                <input
+                  id="novo-exemplares"
+                  name="exemplares"
+                  type="number"
+                  min="0"
+                  required
+                >
+              </div>
+
+              <button type="submit">Cadastrar livro</button>
+            </form>
+
+            <p
+              id="notificacao-cadastro"
+              class="toast"
+              role="status"
+              aria-live="polite"
+              hidden
+            ></p>
+
+          </section>
+
         </section>
       </main>
     </div>
@@ -166,7 +212,7 @@
           lista.appendChild(item);
         }
         atualizarTabelaLivros();
-        
+
       } catch (erro) {
         totalLivros.textContent = "—";
         livrosDisponiveis.textContent = "—";
@@ -207,7 +253,9 @@
 
     function configurarNavegacao() {
       const botoes = document.querySelectorAll(".nav-link[data-view]");
-      const telas = document.querySelectorAll("#dashboard-view, #livros-view");
+      const telas = document.querySelectorAll(
+        "#dashboard-view, #livros-view, #cadastro-view"
+      );
 
       botoes.forEach((botao) => {
         botao.addEventListener("click", () => {
@@ -307,6 +355,63 @@
       .getElementById("filtro-disponibilidade")
       .addEventListener("change", atualizarTabelaLivros);
 
+    let temporizadorNotificacao;
+
+    function mostrarNotificacaoCadastro(mensagem) {
+      const notificacao = document.getElementById("notificacao-cadastro");
+
+      notificacao.textContent = mensagem;
+      notificacao.hidden = false;
+
+      clearTimeout(temporizadorNotificacao);
+
+      temporizadorNotificacao = setTimeout(() => {
+        notificacao.hidden = true;
+        notificacao.textContent = "";
+      }, 15000);
+    }
+
+    const formularioLivro = document.getElementById("form-livro");
+    const botaoCadastrar = formularioLivro.querySelector('button[type="submit"]');
+
+    formularioLivro.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      const dados = new FormData(formularioLivro);
+
+      const novoLivro = {
+        titulo: dados.get("titulo").trim(),
+        autor: dados.get("autor").trim(),
+        ano: Number(dados.get("ano")),
+        exemplares: Number(dados.get("exemplares")),
+      };
+
+      botaoCadastrar.disabled = true;
+
+      try {
+        const resposta = await fetch(`${API}/livros`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(novoLivro),
+        });
+
+        if (!resposta.ok) {
+          throw new Error(`A API respondeu com status ${resposta.status}`);
+        }
+
+        mostrarNotificacaoCadastro("Livro registrado com sucesso!");
+        await carregarLivros();
+      } catch (erro) {
+        console.error("Erro ao cadastrar livro:", erro);
+        mostrarNotificacaoCadastro(
+          "Não foi possível cadastrar o livro. Confira os dados e tente novamente."
+        );
+      } finally {
+        botaoCadastrar.disabled = false;
+      }
+    });
     carregarLivros();
     carregarEmprestimos();
     configurarNavegacao();
