@@ -139,9 +139,8 @@ O banco `biblioteca` e as coleções são criados automaticamente quando o prime
 - [x] Cadastro e listagem de usuários
 - [x] Empréstimos e devoluções, com controle de estoque
 - [x] Código organizado em arquivos (database, schemas, utils e routers)
-- [ ] Interface web (front end)
-- [ ] Login e proteção das rotas
-- [ ] Documentação mais detalhada na pasta `docs/`
+- [x] Interface web (front end)
+
 
 ## Segurança
 
@@ -150,4 +149,4 @@ Este repositório é público. Hoje o projeto usa um MongoDB local, sem senha, e
 ## Autoria
 
 Projeto pessoal de estudo, desenvolvido passo a passo com o objetivo de aprender e documentar cada etapa.
-Estou fazendo uso do Claude para prosseguir com a programação da API.
+Estou fazendo uso do Claude e Codex para prosseguir com a programação da API.
