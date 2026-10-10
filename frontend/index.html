@@ -25,8 +25,8 @@
 
         <button class="nav-link" type="button" data-view="cadastro-view">
           Cadastrar Livro
+          
         </button>
-        <button class="nav-link" type="button" disabled>Sobre</button>
       </nav>
     </aside>
 
@@ -106,6 +106,7 @@
                     <th>Ano</th>
                     <th>Exemplares</th>
                     <th>Disponibilidade</th>
+                    <th scope="col">Ações</th>
                   </tr>
                 </thead>
                 <tbody id="tabela-livros"></tbody>
@@ -115,7 +116,7 @@
 
           <section id="cadastro-view" hidden aria-labelledby="cadastro-titulo">
             <h1 id="cadastro-titulo">Cadastrar Livro</h1>
-            <p>Preencha os dados para adicionar um livro.</p>
+            <p id="cadastro-descricao">Preencha os dados para cadastrar um livro.</p>
 
             <form id="form-livro">
               <div>
@@ -147,24 +148,24 @@
               <button type="submit">Cadastrar livro</button>
             </form>
 
-            <p
-              id="notificacao-cadastro"
-              class="toast"
-              role="status"
-              aria-live="polite"
-              hidden
-            ></p>
-
           </section>
 
         </section>
       </main>
+      <p
+        id="notificacao-cadastro"
+        class="toast"
+        role="status"
+        aria-live="polite"
+        hidden
+      ></p>
     </div>
   </div>
 
   <script>
     const API = "http://127.0.0.1:8000";
     let todosOsLivros = [];
+    let livroEmEdicao = null;
 
     async function carregarLivros() {
       const lista = document.getElementById("lista-livros");
@@ -197,7 +198,7 @@
 
           const linhaVazia = document.createElement("tr");
           const celulaVazia = document.createElement("td");
-          celulaVazia.colSpan = 5;
+          celulaVazia.colSpan = 6;
           celulaVazia.textContent = "Nenhum livro cadastrado.";
           linhaVazia.appendChild(celulaVazia);
           tabelaLivros.appendChild(linhaVazia);
@@ -276,6 +277,16 @@
               outroBotao.removeAttribute("aria-current");
             }
           });
+
+          if (idTelaEscolhida === "cadastro-view") {
+            livroEmEdicao = null;
+            formularioLivro.reset();
+
+            document.getElementById("cadastro-titulo").textContent = "Cadastrar Livro";
+            document.getElementById("cadastro-descricao").textContent =
+              "Preencha os dados para cadastrar um livro.";
+            botaoCadastrar.textContent = "Cadastrar livro";
+          }
         });
       });
     }
@@ -315,10 +326,12 @@
       if (livrosFiltrados.length === 0) {
         const linha = document.createElement("tr");
         const celula = document.createElement("td");
-        celula.colSpan = 5;
+
+        celula.colSpan = 6;
         celula.textContent = "Nenhum livro corresponde à busca ou ao filtro.";
         linha.appendChild(celula);
         tabelaLivros.appendChild(linha);
+
         return;
       }
 
@@ -342,6 +355,26 @@
           celula.textContent = String(valor);
           linha.appendChild(celula);
         }
+
+        const celulaAcoes = document.createElement("td");
+
+        const botaoEditar = document.createElement("button");
+        botaoEditar.type = "button";
+        botaoEditar.className = "botao-editar";
+        botaoEditar.textContent = "✏️";
+        botaoEditar.setAttribute("aria-label", `Editar ${livro.titulo}`);
+        botaoEditar.dataset.livroId = livro._id;
+
+        celulaAcoes.appendChild(botaoEditar);
+        const botaoExcluir = document.createElement("button");
+          botaoExcluir.type = "button";
+          botaoExcluir.className = "botao-excluir";
+          botaoExcluir.textContent = "🗑️";
+          botaoExcluir.setAttribute("aria-label", `Excluir ${livro.titulo}`);
+          botaoExcluir.dataset.livroId = livro._id;
+
+          celulaAcoes.appendChild(botaoExcluir);
+        linha.appendChild(celulaAcoes);
 
         tabelaLivros.appendChild(linha);
       }
@@ -374,39 +407,134 @@
     const formularioLivro = document.getElementById("form-livro");
     const botaoCadastrar = formularioLivro.querySelector('button[type="submit"]');
 
+    document.getElementById("tabela-livros").addEventListener("click", (evento) => {
+      const botaoEditar = evento.target.closest(".botao-editar");
+
+      if (!botaoEditar) {
+        return;
+      }
+
+      const livro = todosOsLivros.find(
+        (item) => item._id === botaoEditar.dataset.livroId
+      );
+
+      if (!livro) {
+        return;
+      }
+      
+      document
+        .querySelector('.nav-link[data-view="cadastro-view"]')
+        .click();
+
+      livroEmEdicao = livro._id;
+
+      document.getElementById("novo-titulo").value = livro.titulo;
+      document.getElementById("novo-autor").value = livro.autor;
+      document.getElementById("novo-ano").value = livro.ano;
+      document.getElementById("novo-exemplares").value = livro.exemplares;
+
+      document.getElementById("cadastro-titulo").textContent = "Editar Livro";
+      document.getElementById("cadastro-descricao").textContent =
+        "Altere os dados do livro e salve as alterações.";
+      botaoCadastrar.textContent = "Salvar alterações";
+    });
+
+    document
+      .getElementById("tabela-livros")
+      .addEventListener("click", async (evento) => {
+        const botaoExcluir = evento.target.closest(".botao-excluir");
+
+        if (!botaoExcluir) {
+          return;
+        }
+
+        const livroId = botaoExcluir.dataset.livroId;
+        const livro = todosOsLivros.find((item) => item._id === livroId);
+
+        if (!livro) {
+          return;
+        }
+
+        const confirmou = window.confirm(
+          `Tem certeza que deseja excluir "${livro.titulo}"? Essa ação não pode ser desfeita.`
+        );
+
+        if (!confirmou) {
+          return;
+        }
+
+        botaoExcluir.disabled = true;
+
+        try {
+          const resposta = await fetch(
+            `${API}/livros/${encodeURIComponent(livroId)}`,
+            { method: "DELETE" }
+          );
+
+          if (!resposta.ok) {
+            throw new Error(`A API respondeu com status ${resposta.status}`);
+          }
+
+          mostrarNotificacaoCadastro("Livro excluído com sucesso!");
+          await carregarLivros();
+        } catch (erro) {
+          console.error("Erro ao excluir livro:", erro);
+          mostrarNotificacaoCadastro(
+            "Não foi possível excluir o livro. Tente novamente."
+          );
+        } finally {
+          botaoExcluir.disabled = false;
+        }
+      });
+
     formularioLivro.addEventListener("submit", async (evento) => {
       evento.preventDefault();
 
       const dados = new FormData(formularioLivro);
 
-      const novoLivro = {
+      const dadosLivro = {
         titulo: dados.get("titulo").trim(),
         autor: dados.get("autor").trim(),
         ano: Number(dados.get("ano")),
         exemplares: Number(dados.get("exemplares")),
       };
 
+      const editando = livroEmEdicao !== null;
+
+      const url = editando
+        ? `${API}/livros/${encodeURIComponent(livroEmEdicao)}`
+        : `${API}/livros`;
+
+      const metodo = editando ? "PATCH" : "POST";
+
       botaoCadastrar.disabled = true;
 
       try {
-        const resposta = await fetch(`${API}/livros`, {
-          method: "POST",
+        const resposta = await fetch(url, {
+          method: metodo,
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify(novoLivro),
+          body: JSON.stringify(dadosLivro),
         });
 
         if (!resposta.ok) {
           throw new Error(`A API respondeu com status ${resposta.status}`);
         }
 
-        mostrarNotificacaoCadastro("Livro registrado com sucesso!");
+        const mensagem = editando
+          ? "Livro atualizado com sucesso!"
+          : "Livro registrado com sucesso!";
+
+        mostrarNotificacaoCadastro(mensagem);
         await carregarLivros();
       } catch (erro) {
-        console.error("Erro ao cadastrar livro:", erro);
+        console.error("Erro ao salvar livro:", erro);
+
         mostrarNotificacaoCadastro(
-          "Não foi possível cadastrar o livro. Confira os dados e tente novamente."
+          editando
+            ? "Não foi possível atualizar o livro. Confira os dados e tente novamente."
+            : "Não foi possível cadastrar o livro. Confira os dados e tente novamente."
         );
       } finally {
         botaoCadastrar.disabled = false;
