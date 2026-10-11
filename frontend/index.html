@@ -23,9 +23,12 @@
           Livros
         </button>
 
-        <button class="nav-link" type="button" data-view="cadastro-view">
-          Cadastrar Livro
-          
+        <button class="nav-link" type="button" data-view="usuarios-view">
+          Usuários
+        </button>
+
+        <button class="nav-link" type="button" data-view="emprestimos-view">
+          Empréstimos
         </button>
       </nav>
     </aside>
@@ -77,6 +80,51 @@
           <section id="livros-view" hidden aria-labelledby="livros-titulo">
             <h1 id="livros-titulo">Livros</h1>
             <p>Consulte os livros cadastrados na API.</p>
+
+            <button id="botao-mostrar-form-livro" type="button">
+              + Adicionar novo livro
+            </button>
+
+            <div id="painel-cadastro-livro" hidden>
+              <h2 id="cadastro-titulo">Cadastrar Livro</h2>
+              <p id="cadastro-descricao">
+                Preencha os dados para cadastrar um livro.
+              </p>
+
+              <form id="form-livro">
+                <div>
+                  <label for="novo-titulo">Título</label>
+                  <input id="novo-titulo" name="titulo" type="text" required>
+                </div>
+
+                <div>
+                  <label for="novo-autor">Autor</label>
+                  <input id="novo-autor" name="autor" type="text" required>
+                </div>
+
+                <div>
+                  <label for="novo-ano">Ano</label>
+                  <input id="novo-ano" name="ano" type="number" required>
+                </div>
+
+                <div>
+                  <label for="novo-exemplares">Exemplares</label>
+                  <input
+                    id="novo-exemplares"
+                    name="exemplares"
+                    type="number"
+                    min="0"
+                    required
+                  >
+                </div>
+
+                <div class="form-actions">
+                  <button id="botao-cancelar-livro" type="button">Cancelar</button>
+                  <button type="submit">Cadastrar livro</button>
+                </div>
+              </form>
+
+            </div>
             <div class="catalog-filters">
               <div>
                 <label for="busca-catalogo">Buscar por título ou autor</label>
@@ -114,40 +162,55 @@
             </div>
           </section>
 
-          <section id="cadastro-view" hidden aria-labelledby="cadastro-titulo">
-            <h1 id="cadastro-titulo">Cadastrar Livro</h1>
-            <p id="cadastro-descricao">Preencha os dados para cadastrar um livro.</p>
+          <section id="usuarios-view" hidden aria-labelledby="usuarios-titulo">
+            <h1 id="usuarios-titulo">Usuários</h1>
+            <p>Consulte e cadastre os usuários da biblioteca.</p>
 
-            <form id="form-livro">
-              <div>
-                <label for="novo-titulo">Título</label>
-                <input id="novo-titulo" name="titulo" type="text" required>
-              </div>
+            <button id="botao-mostrar-form-usuario" type="button">
+              + Cadastrar novo usuário
+            </button>
 
+            <form id="form-usuario" hidden>
               <div>
-                <label for="novo-autor">Autor</label>
-                <input id="novo-autor" name="autor" type="text" required>
-              </div>
-
-              <div>
-                <label for="novo-ano">Ano</label>
-                <input id="novo-ano" name="ano" type="number" required>
-              </div>
-
-              <div>
-                <label for="novo-exemplares">Exemplares</label>
+                <label for="usuario-nome">Nome</label>
                 <input
-                  id="novo-exemplares"
-                  name="exemplares"
-                  type="number"
-                  min="0"
+                  id="usuario-nome"
+                  name="nome"
+                  type="text"
+                  maxlength="100"
                   required
                 >
               </div>
 
-              <button type="submit">Cadastrar livro</button>
+              <div>
+                <label for="usuario-email">E-mail</label>
+                <input
+                  id="usuario-email"
+                  name="email"
+                  type="email"
+                  maxlength="100"
+                  required
+                >
+              </div>
+
+              <div class="form-actions">
+                <button id="botao-cancelar-usuario" type="button">Cancelar</button>
+                <button type="submit">Cadastrar usuário</button>
+              </div>
             </form>
 
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Nome</th>
+                    <th>E-mail</th>
+                    <th>Data de cadastro</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-usuarios"></tbody>
+              </table>
+            </div>
           </section>
 
         </section>
@@ -252,10 +315,60 @@
       }
     }
 
+    async function carregarUsuarios() {
+      const tabelaUsuarios = document.getElementById("tabela-usuarios");
+
+      try {
+        const resposta = await fetch(`${API}/usuarios`);
+
+        if (!resposta.ok) {
+          throw new Error(`A API respondeu com status ${resposta.status}`);
+        }
+
+        const usuarios = await resposta.json();
+        tabelaUsuarios.replaceChildren();
+
+        if (usuarios.length === 0) {
+          const linha = document.createElement("tr");
+          const celula = document.createElement("td");
+
+          celula.colSpan = 3;
+          celula.textContent = "Nenhum usuário cadastrado.";
+          linha.appendChild(celula);
+          tabelaUsuarios.appendChild(linha);
+          return;
+        }
+
+        for (const usuario of usuarios) {
+          const linha = document.createElement("tr");
+          const dataCadastro = new Date(usuario.data_cadastro)
+            .toLocaleDateString("pt-BR");
+
+          for (const valor of [usuario.nome, usuario.email, dataCadastro]) {
+            const celula = document.createElement("td");
+            celula.textContent = String(valor);
+            linha.appendChild(celula);
+          }
+
+          tabelaUsuarios.appendChild(linha);
+        }
+      } catch (erro) {
+        console.error("Erro ao carregar usuários:", erro);
+
+        const linha = document.createElement("tr");
+        const celula = document.createElement("td");
+
+        celula.colSpan = 3;
+        celula.textContent = "Não foi possível carregar os usuários.";
+        linha.appendChild(celula);
+        tabelaUsuarios.replaceChildren(linha);
+      }
+    }
+
     function configurarNavegacao() {
       const botoes = document.querySelectorAll(".nav-link[data-view]");
       const telas = document.querySelectorAll(
-        "#dashboard-view, #livros-view, #cadastro-view"
+        "#dashboard-view, #livros-view, #usuarios-view, #emprestimos-view"
       );
 
       botoes.forEach((botao) => {
@@ -278,15 +391,6 @@
             }
           });
 
-          if (idTelaEscolhida === "cadastro-view") {
-            livroEmEdicao = null;
-            formularioLivro.reset();
-
-            document.getElementById("cadastro-titulo").textContent = "Cadastrar Livro";
-            document.getElementById("cadastro-descricao").textContent =
-              "Preencha os dados para cadastrar um livro.";
-            botaoCadastrar.textContent = "Cadastrar livro";
-          }
         });
       });
     }
@@ -406,6 +510,96 @@
 
     const formularioLivro = document.getElementById("form-livro");
     const botaoCadastrar = formularioLivro.querySelector('button[type="submit"]');
+    const painelCadastroLivro = document.getElementById("painel-cadastro-livro");
+    const botaoMostrarFormLivro = document.getElementById("botao-mostrar-form-livro");
+
+    const formularioUsuario = document.getElementById("form-usuario");
+    const botaoMostrarFormUsuario = document.getElementById(
+      "botao-mostrar-form-usuario"
+    );
+    const botaoCancelarUsuario = document.getElementById(
+      "botao-cancelar-usuario"
+    );
+
+    botaoMostrarFormUsuario.addEventListener("click", () => {
+      formularioUsuario.hidden = false;
+      document.getElementById("usuario-nome").focus();
+    });
+
+    botaoCancelarUsuario.addEventListener("click", () => {
+      formularioUsuario.reset();
+      formularioUsuario.hidden = true;
+    });
+
+    formularioUsuario.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      const dados = new FormData(formularioUsuario);
+      const novoUsuario = {
+        nome: dados.get("nome").trim(),
+        email: dados.get("email").trim(),
+      };
+
+      const botaoEnviar = formularioUsuario.querySelector('button[type="submit"]');
+      botaoEnviar.disabled = true;
+
+      try {
+        const resposta = await fetch(`${API}/usuarios`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(novoUsuario),
+        });
+
+        const resultado = await resposta.json();
+
+        if (!resposta.ok) {
+          throw new Error(resultado.detail || "Erro ao cadastrar usuário.");
+        }
+
+        mostrarNotificacaoCadastro("Usuário cadastrado com sucesso!");
+        formularioUsuario.reset();
+        await carregarUsuarios();
+      } catch (erro) {
+        console.error("Erro ao cadastrar usuário:", erro);
+
+        const mensagem = erro.message.includes("Já existe")
+          ? "Já existe um usuário cadastrado com esse e-mail."
+          : "Não foi possível cadastrar o usuário. Confira os dados e tente novamente.";
+
+        mostrarNotificacaoCadastro(mensagem);
+      } finally {
+        botaoEnviar.disabled = false;
+      }
+    });
+
+    const botaoCancelarLivro = document.getElementById("botao-cancelar-livro");
+    botaoCancelarLivro.addEventListener("click", () => {
+      formularioLivro.reset();
+      livroEmEdicao = null;
+      painelCadastroLivro.hidden = true;
+
+      document.getElementById("cadastro-titulo").textContent = "Cadastrar Livro";
+      document.getElementById("cadastro-descricao").textContent =
+        "Preencha os dados para cadastrar um livro.";
+      botaoCadastrar.textContent = "Cadastrar livro";
+
+      botaoMostrarFormLivro.focus();
+    });
+
+    botaoMostrarFormLivro.addEventListener("click", () => {
+      livroEmEdicao = null;
+      formularioLivro.reset();
+
+      document.getElementById("cadastro-titulo").textContent = "Cadastrar Livro";
+      document.getElementById("cadastro-descricao").textContent =
+        "Preencha os dados para cadastrar um livro.";
+      botaoCadastrar.textContent = "Cadastrar livro";
+
+      painelCadastroLivro.hidden = false;
+      document.getElementById("novo-titulo").focus();
+    });
 
     document.getElementById("tabela-livros").addEventListener("click", (evento) => {
       const botaoEditar = evento.target.closest(".botao-editar");
@@ -422,9 +616,8 @@
         return;
       }
       
-      document
-        .querySelector('.nav-link[data-view="cadastro-view"]')
-        .click();
+      formularioLivro.reset();
+      painelCadastroLivro.hidden = false;
 
       livroEmEdicao = livro._id;
 
@@ -543,6 +736,7 @@
     carregarLivros();
     carregarEmprestimos();
     configurarNavegacao();
+    carregarUsuarios();
   </script>
 </body>
 </html>
