@@ -21,10 +21,7 @@ def registrar_emprestimo(dados: EmprestimoNovo):
 
     if usuarios.find_one({"_id": usuario_oid}) is None:
         raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    
-    if livro["exemplares"] <= 0:
-        raise HTTPException(status_code=409, detail="Não há exemplares disponíveis deste livro")
-    
+
     agora = datetime.now(timezone.utc)
     documento = {
         "livro_id": livro_oid,
@@ -33,15 +30,51 @@ def registrar_emprestimo(dados: EmprestimoNovo):
         "data_prevista_devolucao": agora + timedelta(days=PRAZO_DIAS),
         "data_devolucao": None,
     }
-    resultado = emprestimos.insert_one(documento)
 
-    restantes = livro["exemplares"] - 1
-    livros.update_one(
-        {"_id": livro_oid},
-        {"$inc": {"exemplares": -1}, "$set": {"disponivel": restantes > 0}},
+    # Tenta reservar um exemplar sem deixar o estoque ficar negativo.
+    estoque_atualizado = livros.update_one(
+        {"_id": livro_oid, "exemplares": {"$gt": 1}},
+        {
+            "$inc": {"exemplares": -1},
+            "$set": {"disponivel": True},
+        },
     )
 
-    return {"mensagem": "Empréstimo registrado com sucesso", "id": str(resultado.inserted_id)}
+    # Se restava exatamente um exemplar, reserva esse último.
+    if estoque_atualizado.modified_count == 0:
+        estoque_atualizado = livros.update_one(
+            {"_id": livro_oid, "exemplares": 1},
+            {
+                "$set": {
+                    "exemplares": 0,
+                    "disponivel": False,
+                }
+            },
+        )
+
+    if estoque_atualizado.modified_count == 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Não há exemplares disponíveis deste livro",
+        )
+
+    try:
+        resultado = emprestimos.insert_one(documento)
+    except Exception:
+        # Se não conseguir salvar o empréstimo, devolve o exemplar ao estoque.
+        livros.update_one(
+            {"_id": livro_oid},
+            {
+                "$inc": {"exemplares": 1},
+                "$set": {"disponivel": True},
+            },
+        )
+        raise
+
+    return {
+        "mensagem": "Empréstimo registrado com sucesso",
+        "id": str(resultado.inserted_id),
+    }
 
 @router.get("")
 def listar_emprestimos():
@@ -62,13 +95,23 @@ def devolver_livro(emprestimo_id: str):
     if emprestimo is None:
         raise HTTPException(status_code=404, detail="Empréstimo não encontrado")
 
-    if emprestimo["data_devolucao"] is not None:
-        raise HTTPException(status_code=409, detail="Este empréstimo já foi devolvido")
+    livro = livros.find_one({"_id": emprestimo["livro_id"]})
+    if livro is None:
+        raise HTTPException(
+            status_code=409,
+            detail="O livro associado a este empréstimo não foi encontrado",
+        )
 
-    emprestimos.update_one(
-        {"_id": emprestimo_oid},
+    resultado = emprestimos.update_one(
+        {"_id": emprestimo_oid, "data_devolucao": None},
         {"$set": {"data_devolucao": datetime.now(timezone.utc)}},
     )
+
+    if resultado.modified_count == 0:
+        raise HTTPException(
+            status_code=409,
+            detail="Este empréstimo já foi devolvido",
+        )
 
     livros.update_one(
         {"_id": emprestimo["livro_id"]},

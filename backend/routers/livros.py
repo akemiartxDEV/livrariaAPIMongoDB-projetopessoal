@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from database import livros
+from database import livros, emprestimos
 from schemas import LivroNovo, LivroAtualizacao
 from utils import converter_id
 
@@ -57,6 +57,11 @@ def atualizar_livro(livro_id: str, dados: LivroAtualizacao):
 @router.delete("/{livro_id}")
 def remover_livro(livro_id: str):
     objeto_id = converter_id(livro_id)
+    if emprestimos.find_one({"livro_id": objeto_id}):
+        raise HTTPException(
+            status_code=409,
+            detail="Este livro possui empréstimos registrados e não pode ser excluído.",
+        )
     resultado = livros.delete_one({"_id": objeto_id})
     if resultado.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Livro não encontrado")

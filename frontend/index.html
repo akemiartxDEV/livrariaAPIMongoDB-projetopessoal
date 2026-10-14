@@ -333,7 +333,7 @@
 
         const linhaErro = document.createElement("tr");
         const celulaErro = document.createElement("td");
-        celulaErro.colSpan = 5;
+        celulaErro.colSpan = 6;
         celulaErro.textContent = "Não foi possível carregar os livros.";
         linhaErro.appendChild(celulaErro);
         tabelaLivros.replaceChildren(linhaErro);
@@ -924,8 +924,13 @@
             { method: "DELETE" }
           );
 
+          const resultado = await resposta.json();
+
           if (!resposta.ok) {
-            throw new Error(`A API respondeu com status ${resposta.status}`);
+            mostrarNotificacaoCadastro(
+              resultado.detail || "Não foi possível excluir o livro."
+            );
+            return;
           }
 
           mostrarNotificacaoCadastro("Livro excluído com sucesso!");
