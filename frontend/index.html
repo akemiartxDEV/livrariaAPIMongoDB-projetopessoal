@@ -213,7 +213,51 @@
             </div>
           </section>
 
-        </section>
+          <section id="emprestimos-view" hidden aria-labelledby="emprestimos-titulo">
+            <h1 id="emprestimos-titulo">Empréstimos</h1>
+            <p>Registre empréstimos e acompanhe as devoluções.</p>
+
+            <button id="botao-mostrar-form-emprestimo" type="button">
+              + Novo empréstimo
+            </button>
+
+            <form id="form-emprestimo" hidden>
+              <div>
+                <label for="emprestimo-livro">Livro</label>
+                <select id="emprestimo-livro" name="livro_id" required>
+                  <option value="">Selecione um livro</option>
+                </select>
+              </div>
+
+              <div>
+                <label for="emprestimo-usuario">Usuário</label>
+                <select id="emprestimo-usuario" name="usuario_id" required>
+                  <option value="">Selecione um usuário</option>
+                </select>
+              </div>
+
+              <div class="form-actions">
+                <button id="botao-cancelar-emprestimo" type="button">Cancelar</button>
+                <button type="submit">Registrar empréstimo</button>
+              </div>
+            </form>
+
+            <div class="table-wrapper">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Livro</th>
+                    <th>Usuário</th>
+                    <th>Data do empréstimo</th>
+                    <th>Devolução prevista</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="tabela-emprestimos"></tbody>
+              </table>
+            </div>
+          </section>
       </main>
       <p
         id="notificacao-cadastro"
@@ -229,6 +273,7 @@
     const API = "http://127.0.0.1:8000";
     let todosOsLivros = [];
     let livroEmEdicao = null;
+    let todosOsUsuarios = [];
 
     async function carregarLivros() {
       const lista = document.getElementById("lista-livros");
@@ -244,6 +289,7 @@
         }
 
         todosOsLivros = await resposta.json();
+        popularOpcoesEmprestimo();
         const livros = todosOsLivros;
 
         totalLivros.textContent = String(livros.length);
@@ -299,6 +345,7 @@
 
     async function carregarEmprestimos() {
       const totalEmprestimos = document.getElementById("total-emprestimos");
+      const tabelaEmprestimos = document.getElementById("tabela-emprestimos");
 
       try {
         const resposta = await fetch(`${API}/emprestimos`);
@@ -309,11 +356,124 @@
 
         const emprestimos = await resposta.json();
         totalEmprestimos.textContent = String(emprestimos.length);
+        tabelaEmprestimos.replaceChildren();
+
+        if (emprestimos.length === 0) {
+          const linha = document.createElement("tr");
+          const celula = document.createElement("td");
+
+          celula.colSpan = 6;
+          celula.textContent = "Nenhum empréstimo registrado.";
+          linha.appendChild(celula);
+          tabelaEmprestimos.appendChild(linha);
+          return;
+        }
+
+        for (const emprestimo of emprestimos) {
+          const livro = todosOsLivros.find(
+            (item) => item._id === emprestimo.livro_id
+          );
+          const usuario = todosOsUsuarios.find(
+            (item) => item._id === emprestimo.usuario_id
+          );
+
+          const status = emprestimo.data_devolucao
+            ? "Devolvido"
+            : "Em andamento";
+
+          const valores = [
+            livro ? livro.titulo : "Livro não encontrado",
+            usuario ? usuario.nome : "Usuário não encontrado",
+            new Date(emprestimo.data_emprestimo).toLocaleDateString("pt-BR"),
+            new Date(emprestimo.data_prevista_devolucao).toLocaleDateString("pt-BR"),
+            status,
+          ];
+
+          const linha = document.createElement("tr");
+
+          for (const valor of valores) {
+            const celula = document.createElement("td");
+            celula.textContent = String(valor);
+            linha.appendChild(celula);
+          }
+
+          const celulaAcoes = document.createElement("td");
+
+          if (emprestimo.data_devolucao) {
+            celulaAcoes.textContent = "—";
+          } else {
+            const botaoDevolver = document.createElement("button");
+            botaoDevolver.type = "button";
+            botaoDevolver.className = "botao-devolver";
+            botaoDevolver.textContent = "Registrar devolução";
+            botaoDevolver.dataset.emprestimoId = emprestimo._id;
+            celulaAcoes.appendChild(botaoDevolver);
+          }
+
+          linha.appendChild(celulaAcoes);
+          tabelaEmprestimos.appendChild(linha);
+        }
       } catch (erro) {
         totalEmprestimos.textContent = "—";
-        console.error("Erro ao buscar empréstimos:", erro);
+        console.error("Erro ao carregar empréstimos:", erro);
+
+        const linha = document.createElement("tr");
+        const celula = document.createElement("td");
+
+        celula.colSpan = 6;
+        celula.textContent = "Não foi possível carregar os empréstimos.";
+        linha.appendChild(celula);
+        tabelaEmprestimos.replaceChildren(linha);
       }
     }
+
+    document
+    .getElementById("tabela-emprestimos")
+    .addEventListener("click", async (evento) => {
+      const botao = evento.target.closest(".botao-devolver");
+
+      if (!botao) {
+        return;
+      }
+
+      const confirmou = window.confirm(
+        "Confirmar a devolução deste livro?"
+      );
+
+      if (!confirmou) {
+        return;
+      }
+
+      const emprestimoId = botao.dataset.emprestimoId;
+      botao.disabled = true;
+
+      try {
+        const resposta = await fetch(
+          `${API}/emprestimos/${encodeURIComponent(emprestimoId)}/devolucao`,
+          { method: "PATCH" }
+        );
+
+        const resultado = await resposta.json();
+
+        if (!resposta.ok) {
+          throw new Error(resultado.detail || "Erro ao registrar devolução.");
+        }
+
+        mostrarNotificacaoCadastro("Devolução registrada com sucesso!");
+        await carregarLivros();
+        popularOpcoesEmprestimo();
+        await carregarEmprestimos();
+      } catch (erro) {
+        console.error("Erro ao registrar devolução:", erro);
+        mostrarNotificacaoCadastro(
+          "Não foi possível registrar a devolução. Tente novamente."
+        );
+      } finally {
+        if (botao.isConnected) {
+          botao.disabled = false;
+        }
+      }
+    });
 
     async function carregarUsuarios() {
       const tabelaUsuarios = document.getElementById("tabela-usuarios");
@@ -325,7 +485,9 @@
           throw new Error(`A API respondeu com status ${resposta.status}`);
         }
 
-        const usuarios = await resposta.json();
+        todosOsUsuarios = await resposta.json();
+        const usuarios = todosOsUsuarios;
+        popularOpcoesEmprestimo();
         tabelaUsuarios.replaceChildren();
 
         if (usuarios.length === 0) {
@@ -362,6 +524,37 @@
         celula.textContent = "Não foi possível carregar os usuários.";
         linha.appendChild(celula);
         tabelaUsuarios.replaceChildren(linha);
+      }
+    }
+
+    function popularOpcoesEmprestimo() {
+      const selectLivro = document.getElementById("emprestimo-livro");
+      const selectUsuario = document.getElementById("emprestimo-usuario");
+
+      const opcaoInicialLivro = document.createElement("option");
+      opcaoInicialLivro.value = "";
+      opcaoInicialLivro.textContent = "Selecione um livro";
+      selectLivro.replaceChildren(opcaoInicialLivro);
+
+      const opcaoInicialUsuario = document.createElement("option");
+      opcaoInicialUsuario.value = "";
+      opcaoInicialUsuario.textContent = "Selecione um usuário";
+      selectUsuario.replaceChildren(opcaoInicialUsuario);
+
+      for (const livro of todosOsLivros) {
+        if (livro.exemplares <= 0) continue;
+
+        const opcao = document.createElement("option");
+        opcao.value = livro._id;
+        opcao.textContent = `${livro.titulo} — ${livro.autor}`;
+        selectLivro.appendChild(opcao);
+      }
+
+      for (const usuario of todosOsUsuarios) {
+        const opcao = document.createElement("option");
+        opcao.value = usuario._id;
+        opcao.textContent = `${usuario.nome} — ${usuario.email}`;
+        selectUsuario.appendChild(opcao);
       }
     }
 
@@ -531,6 +724,25 @@
       formularioUsuario.hidden = true;
     });
 
+    const formularioEmprestimo = document.getElementById("form-emprestimo");
+    const botaoMostrarFormEmprestimo = document.getElementById(
+      "botao-mostrar-form-emprestimo"
+    );
+    const botaoCancelarEmprestimo = document.getElementById(
+      "botao-cancelar-emprestimo"
+    );
+
+    botaoMostrarFormEmprestimo.addEventListener("click", () => {
+      formularioEmprestimo.reset();
+      popularOpcoesEmprestimo();
+      formularioEmprestimo.hidden = false;
+    });
+
+    botaoCancelarEmprestimo.addEventListener("click", () => {
+      formularioEmprestimo.reset();
+      formularioEmprestimo.hidden = true;
+    });
+
     formularioUsuario.addEventListener("submit", async (evento) => {
       evento.preventDefault();
 
@@ -567,6 +779,54 @@
         const mensagem = erro.message.includes("Já existe")
           ? "Já existe um usuário cadastrado com esse e-mail."
           : "Não foi possível cadastrar o usuário. Confira os dados e tente novamente.";
+
+        mostrarNotificacaoCadastro(mensagem);
+      } finally {
+        botaoEnviar.disabled = false;
+      }
+    });
+
+    formularioEmprestimo.addEventListener("submit", async (evento) => {
+      evento.preventDefault();
+
+      const dados = new FormData(formularioEmprestimo);
+      const novoEmprestimo = {
+        livro_id: dados.get("livro_id"),
+        usuario_id: dados.get("usuario_id"),
+      };
+
+      const botaoEnviar = formularioEmprestimo.querySelector(
+        'button[type="submit"]'
+      );
+      botaoEnviar.disabled = true;
+
+      try {
+        const resposta = await fetch(`${API}/emprestimos`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(novoEmprestimo),
+        });
+
+        const resultado = await resposta.json();
+
+        if (!resposta.ok) {
+          throw new Error(resultado.detail || "Erro ao registrar empréstimo.");
+        }
+
+        mostrarNotificacaoCadastro("Empréstimo registrado com sucesso!");
+        formularioEmprestimo.reset();
+
+        await carregarLivros();
+        popularOpcoesEmprestimo();
+        await carregarEmprestimos();
+      } catch (erro) {
+        console.error("Erro ao registrar empréstimo:", erro);
+
+        const mensagem = erro.message.includes("Não há exemplares")
+          ? "Não há exemplares disponíveis desse livro."
+          : "Não foi possível registrar o empréstimo. Tente novamente.";
 
         mostrarNotificacaoCadastro(mensagem);
       } finally {
@@ -733,10 +993,12 @@
         botaoCadastrar.disabled = false;
       }
     });
-    carregarLivros();
-    carregarEmprestimos();
+
     configurarNavegacao();
-    carregarUsuarios();
+
+    Promise.all([carregarLivros(), carregarUsuarios()]).then(() => {
+      carregarEmprestimos();
+    });
   </script>
 </body>
 </html>

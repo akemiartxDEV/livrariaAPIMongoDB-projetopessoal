@@ -695,3 +695,182 @@ input {
     flex: 1;
   }
 }
+#botao-mostrar-form-emprestimo {
+  display: inline-flex;
+  align-items: center;
+  margin: 16px 0 20px;
+  padding: 10px 16px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--roxo);
+  color: var(--superficie);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+#botao-mostrar-form-emprestimo:hover {
+  filter: brightness(0.93);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(104, 80, 187, 0.22);
+}
+
+#botao-mostrar-form-emprestimo:focus-visible {
+  outline: 3px solid var(--lilas);
+  outline-offset: 3px;
+}
+
+#form-emprestimo[hidden] {
+  display: none;
+}
+
+#form-emprestimo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+  padding: 24px;
+  background: var(--superficie);
+  border: 1px solid var(--borda);
+  border-radius: 14px;
+}
+
+#form-emprestimo > div:not(.form-actions) {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+#form-emprestimo label {
+  color: var(--texto-suave);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+#form-emprestimo select {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 9px;
+  background: var(--superficie);
+  color: var(--texto);
+  font: inherit;
+}
+
+#form-emprestimo select:focus-visible {
+  border-color: var(--roxo);
+  outline: 3px solid var(--lilas);
+}
+
+#form-emprestimo .form-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+#form-emprestimo .form-actions button {
+  min-height: 44px;
+  padding: 10px 18px;
+  border-radius: 9px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s ease, filter 0.2s ease, background 0.2s ease;
+}
+
+#form-emprestimo .form-actions button[type="submit"] {
+  border: 0;
+  background: var(--roxo);
+  color: var(--superficie);
+}
+
+#form-emprestimo .form-actions button[type="button"] {
+  border: 1px solid var(--borda);
+  background: var(--superficie);
+  color: var(--texto);
+}
+
+#form-emprestimo .form-actions button:hover {
+  transform: translateY(-2px);
+}
+
+#form-emprestimo .form-actions button[type="submit"]:hover {
+  filter: brightness(0.93);
+}
+
+#form-emprestimo .form-actions button[type="button"]:hover {
+  background: var(--fundo);
+}
+
+#form-emprestimo .form-actions button:focus-visible,
+.botao-devolver:focus-visible {
+  outline: 3px solid var(--lilas);
+  outline-offset: 3px;
+}
+
+.botao-devolver {
+  padding: 8px 12px;
+  border: 1px solid var(--borda);
+  border-radius: 8px;
+  background: var(--superficie);
+  color: var(--roxo);
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.botao-devolver:hover:not(:disabled) {
+  background: var(--lilas);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(104, 80, 187, 0.16);
+}
+
+#emprestimos-view th:last-child,
+#emprestimos-view td:last-child {
+  white-space: nowrap;
+}
+
+#tabela-emprestimos tr:hover td {
+  background: #faf9fd;
+}
+
+@media (max-width: 640px) {
+  #form-emprestimo {
+    grid-template-columns: 1fr;
+    padding: 18px;
+  }
+
+  #form-emprestimo .form-actions button {
+    flex: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #botao-mostrar-form-emprestimo,
+  #form-emprestimo .form-actions button,
+  .botao-devolver {
+    transition: none;
+  }
+
+  #botao-mostrar-form-emprestimo:hover,
+  #form-emprestimo .form-actions button:hover,
+  .botao-devolver:hover {
+    transform: none;
+  }
+}
+
+#form-emprestimo select option {
+  padding: 8px;
+  background-color: var(--superficie);
+  color: var(--texto);
+}
+
+#form-emprestimo select option:checked {
+  background-color: var(--lilas);
+  color: var(--texto);
+}
