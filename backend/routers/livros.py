@@ -57,12 +57,36 @@ def atualizar_livro(livro_id: str, dados: LivroAtualizacao):
 @router.delete("/{livro_id}")
 def remover_livro(livro_id: str):
     objeto_id = converter_id(livro_id)
-    if emprestimos.find_one({"livro_id": objeto_id}):
+
+    livro = livros.find_one({"_id": objeto_id})
+    if livro is None:
+        raise HTTPException(status_code=404, detail="Livro não encontrado")
+
+    emprestimo_ativo = emprestimos.find_one(
+        {
+            "livro_id": objeto_id,
+            "data_devolucao": None,
+        }
+    )
+
+    if emprestimo_ativo:
         raise HTTPException(
             status_code=409,
-            detail="Este livro possui empréstimos registrados e não pode ser excluído.",
+            detail="Não é possível excluir um livro com empréstimo em andamento.",
         )
-    resultado = livros.delete_one({"_id": objeto_id})
-    if resultado.deleted_count == 0:
-        raise HTTPException(status_code=404, detail="Livro não encontrado")
+
+    emprestimos.update_many(
+        {
+            "livro_id": objeto_id,
+            "livro_titulo": {"$exists": False},
+        },
+        {
+            "$set": {
+                "livro_titulo": livro["titulo"],
+                "livro_autor": livro.get("autor", ""),
+            }
+        },
+    )
+
+    livros.delete_one({"_id": objeto_id})
     return {"mensagem": "Livro removido com sucesso"}

@@ -382,7 +382,8 @@
             : "Em andamento";
 
           const valores = [
-            livro ? livro.titulo : "Livro não encontrado",
+            emprestimo.livro_titulo ||
+              (livro ? livro.titulo : "Livro não encontrado"),
             usuario ? usuario.nome : "Usuário não encontrado",
             new Date(emprestimo.data_emprestimo).toLocaleDateString("pt-BR"),
             new Date(emprestimo.data_prevista_devolucao).toLocaleDateString("pt-BR"),

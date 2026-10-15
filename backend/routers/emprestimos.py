@@ -25,13 +25,14 @@ def registrar_emprestimo(dados: EmprestimoNovo):
     agora = datetime.now(timezone.utc)
     documento = {
         "livro_id": livro_oid,
+        "livro_titulo": livro["titulo"],
+        "livro_autor": livro["autor"],
         "usuario_id": usuario_oid,
         "data_emprestimo": agora,
         "data_prevista_devolucao": agora + timedelta(days=PRAZO_DIAS),
         "data_devolucao": None,
     }
 
-    # Tenta reservar um exemplar sem deixar o estoque ficar negativo.
     estoque_atualizado = livros.update_one(
         {"_id": livro_oid, "exemplares": {"$gt": 1}},
         {
@@ -40,7 +41,6 @@ def registrar_emprestimo(dados: EmprestimoNovo):
         },
     )
 
-    # Se restava exatamente um exemplar, reserva esse último.
     if estoque_atualizado.modified_count == 0:
         estoque_atualizado = livros.update_one(
             {"_id": livro_oid, "exemplares": 1},
@@ -61,7 +61,6 @@ def registrar_emprestimo(dados: EmprestimoNovo):
     try:
         resultado = emprestimos.insert_one(documento)
     except Exception:
-        # Se não conseguir salvar o empréstimo, devolve o exemplar ao estoque.
         livros.update_one(
             {"_id": livro_oid},
             {
